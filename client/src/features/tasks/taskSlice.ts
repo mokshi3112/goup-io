@@ -8,6 +8,8 @@ export interface Task {
     description: string;
     assigneeId: string;
     status: 'todo' | 'in-progress' | 'done';
+    priority: 'low' | 'medium' | 'high';
+    tags: string[];
     dueDate: string;
     createdAt: string;
 }

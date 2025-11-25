@@ -5,6 +5,8 @@ export interface ITask extends Document {
     description: string;
     assigneeId: string;
     status: 'todo' | 'in-progress' | 'done';
+    priority: 'low' | 'medium' | 'high';
+    tags: string[];
     dueDate: Date;
     createdAt: Date;
 }
@@ -18,6 +20,12 @@ const TaskSchema: Schema = new Schema({
         enum: ['todo', 'in-progress', 'done'],
         default: 'todo'
     },
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium'
+    },
+    tags: { type: [String], default: [] },
     dueDate: { type: Date, required: true },
 }, {
     timestamps: true

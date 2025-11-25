@@ -4,15 +4,17 @@ import { fetchTasks } from '../features/tasks/taskSlice';
 import { selectAllTasks, selectTaskLoading } from '../features/tasks/taskSelectors';
 import type { AppDispatch } from '../store/store';
 import TaskItem from '../components/TaskItem';
+import Dashboard from '../components/Dashboard';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 const TaskListPage: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
     const [filter, setFilter] = useState<'all' | 'assigned' | 'completed'>('all');
-    const [currentUser, setCurrentUser] = useState(''); // Simulating current user for "Assigned to me"
+    const [currentUser, setCurrentUser] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
-    // In a real app, this would come from auth state
     const handleUserChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setCurrentUser(e.target.value);
     };
@@ -21,15 +23,35 @@ const TaskListPage: React.FC = () => {
     const loading = useSelector(selectTaskLoading);
 
     const tasks = useMemo(() => {
+        let filtered = allTasks;
+
+        // Status filter
         switch (filter) {
             case 'assigned':
-                return currentUser ? allTasks.filter(task => task.assigneeId === currentUser) : allTasks;
+                filtered = currentUser ? filtered.filter(task => task.assigneeId === currentUser) : filtered;
+                break;
             case 'completed':
-                return allTasks.filter(task => task.status === 'done');
-            default:
-                return allTasks;
+                filtered = filtered.filter(task => task.status === 'done');
+                break;
         }
-    }, [allTasks, filter, currentUser]);
+
+        // Priority filter
+        if (priorityFilter !== 'all') {
+            filtered = filtered.filter(task => task.priority === priorityFilter);
+        }
+
+        // Search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(task =>
+                task.title.toLowerCase().includes(query) ||
+                task.description.toLowerCase().includes(query) ||
+                task.tags?.some(tag => tag.toLowerCase().includes(query))
+            );
+        }
+
+        return filtered;
+    }, [allTasks, filter, currentUser, priorityFilter, searchQuery]);
 
     useEffect(() => {
         dispatch(fetchTasks({}));
@@ -37,6 +59,8 @@ const TaskListPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            <Dashboard />
+
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
                 <Link
@@ -49,6 +73,19 @@ const TaskListPage: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow space-y-4">
+                {/* Search Bar */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search tasks by title, description, or tags..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+
+                {/* Filters */}
                 <div className="flex flex-wrap gap-4 items-center">
                     <div className="flex space-x-2">
                         <button
@@ -73,6 +110,18 @@ const TaskListPage: React.FC = () => {
                             Completed
                         </button>
                     </div>
+
+                    {/* Priority Filter */}
+                    <select
+                        value={priorityFilter}
+                        onChange={(e) => setPriorityFilter(e.target.value as any)}
+                        className="border rounded px-3 py-1 text-sm"
+                    >
+                        <option value="all">All Priorities</option>
+                        <option value="high">High Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
 
                     {filter === 'assigned' && (
                         <input
